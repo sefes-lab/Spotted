@@ -1,0 +1,1191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0f0e17">
+<meta name="description" content="License Plate Spotter Game for Road Trips">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Spotted!">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Spotted! 🔦</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#0f0e17; --surface:#1a1a2e; --surface2:#16213e; --surface3:#0f3460;
+    --accent:#e94560; --accent2:#f5a623; --accent3:#4ecdc4;
+    --text:#fffffe; --text-muted:#a7a9be;
+    --radius:16px; --radius-sm:10px;
+    --pt0:#2e2e3e; --pt1:#4a90d9; --pt2:#5bafd6; --pt3:#6dc4b0; --pt4:#8dcf7a;
+    --pt5:#b8d94a; --pt6:#e8d030; --pt7:#f0a020; --pt8:#e86420; --pt9:#d03010; --pt10:#a00000;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+  body { font-family:'Nunito',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; overflow-x:hidden; }
+  .screen { display:none; min-height:100vh; flex-direction:column; }
+  .screen.active { display:flex; }
+
+  /* HOME */
+  #screen-home { background:radial-gradient(ellipse at 60% 20%, #0f3460 0%, #1a1a2e 40%, #0f0e17 100%); align-items:center; justify-content:center; text-align:center; padding:24px; gap:22px; }
+  .spotlight-wrap { position:relative; padding:20px; }
+  .spotlight-wrap::before { content:''; position:absolute; top:-30px; left:50%; transform:translateX(-50%); width:200px; height:200px; background:radial-gradient(ellipse,rgba(245,166,35,0.18) 0%,transparent 70%); pointer-events:none; }
+  .logo-plate { background:var(--accent2); border:6px solid #b87a00; border-radius:20px; padding:12px 36px 14px; display:inline-block; box-shadow:0 8px 40px rgba(245,166,35,0.45),inset 0 2px 0 rgba(255,255,255,0.25); position:relative; }
+  .logo-plate::before,.logo-plate::after { content:'●'; position:absolute; top:50%; transform:translateY(-50%); color:#b87a00; font-size:10px; }
+  .logo-plate::before { left:10px; } .logo-plate::after { right:10px; }
+  .logo-title { font-family:'Fredoka One',cursive; font-size:clamp(2.6rem,9vw,3.8rem); color:#1a1a2e; letter-spacing:3px; line-height:1; }
+  .logo-title .bang { color:#c0392b; }
+  .logo-tagline { font-size:0.8rem; color:var(--text-muted); letter-spacing:2px; text-transform:uppercase; margin-top:10px; }
+  .home-runs-list { width:100%; max-width:480px; }
+  .home-runs-list h3 { font-size:0.75rem; text-transform:uppercase; letter-spacing:2px; color:var(--text-muted); margin-bottom:10px; }
+  .run-card { background:var(--surface); border:1px solid rgba(255,255,255,0.07); border-radius:var(--radius); padding:14px 18px; margin-bottom:8px; cursor:pointer; transition:all 0.2s; display:flex; align-items:center; gap:14px; }
+  .run-card:hover,.run-card:active { background:var(--surface2); border-color:var(--accent3); transform:translateY(-1px); }
+  .run-card-icon { font-size:2rem; }
+  .run-card-info { flex:1; text-align:left; min-width:0; }
+  .run-card-name { font-weight:800; font-size:1rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .run-card-meta { font-size:0.75rem; color:var(--text-muted); margin-top:2px; }
+  .run-card-score { font-family:'Fredoka One',cursive; font-size:1.5rem; color:var(--accent2); white-space:nowrap; }
+
+  /* BUTTONS */
+  .btn { display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:14px 28px; border-radius:50px; font-family:'Nunito',sans-serif; font-weight:800; font-size:1rem; border:none; cursor:pointer; transition:all 0.18s; letter-spacing:0.5px; }
+  .btn-primary { background:var(--accent); color:white; box-shadow:0 4px 20px rgba(233,69,96,0.4); }
+  .btn-primary:hover { transform:translateY(-2px); box-shadow:0 6px 24px rgba(233,69,96,0.5); }
+  .btn-secondary { background:var(--surface2); color:var(--text); border:2px solid rgba(255,255,255,0.12); }
+  .btn-secondary:hover { background:var(--surface3); }
+  .btn-ghost { background:transparent; color:var(--text-muted); padding:10px 16px; }
+  .btn-sm { padding:8px 18px; font-size:0.85rem; }
+  .btn-icon { padding:10px; border-radius:12px; font-size:1.2rem; }
+  .btn-spot { background:var(--accent2); color:#1a1a2e; box-shadow:0 4px 20px rgba(245,166,35,0.3); font-weight:900; }
+  .btn-danger { background:#c0392b; color:white; }
+
+  /* MODALS */
+  .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.8); backdrop-filter:blur(6px); z-index:100; display:none; align-items:flex-end; justify-content:center; }
+  .modal-overlay.open { display:flex; }
+  .modal { background:var(--surface); border-radius:var(--radius) var(--radius) 0 0; padding:24px; width:100%; max-width:560px; max-height:90vh; overflow-y:auto; animation:slideUp 0.28s ease; }
+  @keyframes slideUp { from{transform:translateY(100%)} to{transform:translateY(0)} }
+  .modal-handle { width:40px; height:4px; background:rgba(255,255,255,0.18); border-radius:2px; margin:0 auto 20px; }
+  .modal h2 { font-family:'Fredoka One',cursive; font-size:1.6rem; margin-bottom:16px; }
+
+  /* FORMS */
+  .field { margin-bottom:16px; }
+  .field label { display:block; font-size:0.78rem; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:var(--text-muted); margin-bottom:6px; }
+  .field input,.field select { width:100%; padding:12px 16px; background:var(--surface2); border:2px solid rgba(255,255,255,0.1); border-radius:var(--radius-sm); color:var(--text); font-family:'Nunito',sans-serif; font-size:1rem; font-weight:600; transition:border-color 0.2s; outline:none; }
+  .field input:focus,.field select:focus { border-color:var(--accent3); }
+  .field select option { background:#1a1a2e; }
+
+  /* GAME */
+  #screen-game { background:var(--bg); }
+  .game-header { background:var(--surface); padding:12px 16px; display:flex; align-items:center; gap:12px; border-bottom:1px solid rgba(255,255,255,0.06); position:sticky; top:0; z-index:10; }
+  .game-header-info { flex:1; min-width:0; }
+  .game-header-title { font-family:'Fredoka One',cursive; font-size:1.2rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .game-header-meta { font-size:0.7rem; color:var(--text-muted); }
+  .spotters-bar { background:var(--surface2); padding:8px 16px; display:flex; gap:8px; overflow-x:auto; border-bottom:1px solid rgba(255,255,255,0.06); scrollbar-width:none; }
+  .spotters-bar::-webkit-scrollbar { display:none; }
+  .spotter-chip { display:flex; flex-direction:column; align-items:center; background:var(--surface); border:2px solid transparent; border-radius:12px; padding:6px 14px; cursor:pointer; transition:all 0.18s; min-width:72px; white-space:nowrap; }
+  .spotter-chip.active { border-color:var(--accent3); background:rgba(78,205,196,0.12); }
+  .spotter-chip-name { font-size:0.7rem; font-weight:700; }
+  .spotter-chip-score { font-family:'Fredoka One',cursive; font-size:1.1rem; color:var(--accent2); }
+  .spotter-chip-found { font-size:0.62rem; color:var(--text-muted); }
+  .tab-bar { display:flex; background:var(--surface2); border-bottom:1px solid rgba(255,255,255,0.06); }
+  .tab-btn { flex:1; padding:10px 4px; font-family:'Nunito',sans-serif; font-weight:700; font-size:0.75rem; border:none; background:transparent; color:var(--text-muted); cursor:pointer; transition:all 0.18s; border-bottom:3px solid transparent; display:flex; align-items:center; justify-content:center; gap:3px; }
+  .tab-btn.active { color:var(--accent3); border-bottom-color:var(--accent3); }
+  .tab-content { display:none; flex:1; overflow-y:auto; padding:16px; }
+  .tab-content.active { display:block; }
+
+  /* SPOT GRID */
+  .spot-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:5px; }
+  .spot-tile {
+    aspect-ratio:2/1;
+    border-radius:5px;
+    border:2px solid rgba(255,255,255,0.15);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    cursor:pointer; transition:all 0.18s;
+    background:var(--surface); position:relative; overflow:hidden;
+    padding:2px 4px;
+    /* Plate emboss effect */
+    box-shadow:inset 0 1px 0 rgba(255,255,255,0.08), inset 0 -1px 0 rgba(0,0,0,0.3);
+  }
+  /* Bolt holes */
+  .spot-tile::before, .spot-tile::after {
+    content:''; position:absolute; top:50%; transform:translateY(-50%);
+    width:4px; height:4px; border-radius:50%;
+    background:rgba(255,255,255,0.15); border:1px solid rgba(0,0,0,0.3);
+  }
+  .spot-tile::before { left:4px; }
+  .spot-tile::after  { right:4px; }
+  .spot-tile:active { transform:scale(0.94); }
+  .spot-tile.spotted { border-color:rgba(255,255,255,0.35); box-shadow:0 2px 10px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.15); }
+  .spot-tile.home-turf { background:rgba(232,232,224,0.08); border-style:dashed; border-color:rgba(255,255,255,0.12); cursor:default; }
+  .spot-tile-top { width:100%; text-align:center; font-size:clamp(0.3rem,0.85vw,0.44rem); font-weight:900; letter-spacing:0.08em; padding:1px 6px; line-height:1.4; border-radius:2px 2px 0 0; margin:-2px -4px 1px; }
+  .spot-tile-abbr { font-family:'Fredoka One',cursive; font-size:clamp(0.78rem,2.4vw,1.05rem); line-height:1; letter-spacing:0.05em; }
+  .spot-tile-pts { font-size:clamp(0.38rem,1vw,0.52rem); font-weight:800; margin-top:1px; letter-spacing:0.03em; }
+  .spot-tile-count { font-size:0.45rem; font-weight:900; margin-top:0; }
+  /* pt-N color classes now handled via inline styles in renderGrid */
+
+  /* SPOT LOG */
+  .filter-bar { display:flex; gap:6px; margin-bottom:12px; flex-wrap:wrap; }
+  .filter-chip { padding:5px 12px; border-radius:50px; font-size:0.75rem; font-weight:700; border:2px solid rgba(255,255,255,0.1); background:transparent; color:var(--text-muted); cursor:pointer; transition:all 0.18s; }
+  .filter-chip.active { border-color:var(--accent3); color:var(--accent3); background:rgba(78,205,196,0.1); }
+  .log-table { width:100%; border-collapse:collapse; }
+  .log-table th { padding:7px 10px; text-align:left; font-size:0.7rem; text-transform:uppercase; letter-spacing:1px; color:var(--text-muted); border-bottom:1px solid rgba(255,255,255,0.07); cursor:pointer; }
+  .log-table th:hover { color:var(--accent3); }
+  .log-table td { padding:7px 10px; border-bottom:1px solid rgba(255,255,255,0.04); font-size:0.88rem; vertical-align:middle; }
+  .log-table tr:hover td { background:rgba(255,255,255,0.025); }
+  .pt-badge { display:inline-block; width:24px; height:24px; border-radius:6px; text-align:center; line-height:24px; font-size:0.72rem; font-weight:800; }
+  .sighting-pills { display:flex; flex-wrap:wrap; gap:3px; }
+  .sighting-pill { font-size:0.65rem; background:rgba(255,255,255,0.1); border-radius:20px; padding:2px 7px; white-space:nowrap; }
+  .spot-btn { width:28px; height:28px; border-radius:50%; border:2px solid rgba(255,255,255,0.15); background:transparent; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:0.85rem; transition:all 0.18s; color:var(--text-muted); }
+  .spot-btn:hover { border-color:var(--accent2); color:var(--accent2); }
+  .spot-btn.has-spots { background:var(--accent3); border-color:var(--accent3); color:#1a2a2a; }
+
+  /* MAP */
+  #map-container { width:100%; position:relative; }
+  #map-legend { display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; align-items:center; }
+  .legend-item { display:flex; align-items:center; gap:4px; font-size:11px; color:var(--text-muted); }
+  .legend-dot { width:12px; height:12px; border-radius:3px; flex-shrink:0; }
+  #map-tooltip { position:fixed; background:#1a1a2e; color:#fff; padding:6px 12px; border-radius:8px; font-size:13px; font-weight:700; pointer-events:none; opacity:0; border:1px solid rgba(255,255,255,0.15); transition:opacity 0.12s; z-index:200; white-space:nowrap; }
+
+  /* HQ */
+  .hq-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px; }
+  .hq-card { background:var(--surface); border-radius:var(--radius-sm); padding:14px; text-align:center; border:1px solid rgba(255,255,255,0.06); }
+  .hq-card-val { font-family:'Fredoka One',cursive; font-size:2rem; color:var(--accent2); }
+  .hq-card-label { font-size:0.68rem; text-transform:uppercase; letter-spacing:1px; color:var(--text-muted); margin-top:2px; }
+  .progress-wrap { margin:14px 0; }
+  .progress-label { display:flex; justify-content:space-between; font-size:0.75rem; color:var(--text-muted); margin-bottom:6px; }
+  .progress-track { height:10px; background:var(--surface2); border-radius:5px; overflow:hidden; }
+  .progress-fill { height:100%; border-radius:5px; transition:width 0.5s ease; background:linear-gradient(90deg,var(--accent3),var(--accent2)); }
+  .leaderboard { margin-bottom:18px; }
+  .lb-row { display:flex; align-items:center; gap:10px; background:var(--surface); border-radius:var(--radius-sm); padding:10px 14px; margin-bottom:6px; border:1px solid rgba(255,255,255,0.05); }
+  .lb-rank { font-family:'Fredoka One',cursive; font-size:1.2rem; width:24px; text-align:center; }
+  .lb-name { flex:1; font-weight:800; }
+  .lb-score { font-family:'Fredoka One',cursive; font-size:1.3rem; color:var(--accent2); }
+  .lb-found { font-size:0.72rem; color:var(--text-muted); }
+  .achieve-section-title { font-family:'Fredoka One',cursive; font-size:1.1rem; margin:16px 0 10px; display:flex; align-items:center; gap:8px; }
+  .achieve-count { font-size:0.75rem; color:var(--text-muted); font-family:'Nunito',sans-serif; font-weight:700; }
+  .badge-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:16px; }
+  .badge-card { background:var(--surface); border-radius:var(--radius-sm); padding:12px 8px; text-align:center; border:2px solid rgba(255,255,255,0.05); transition:all 0.2s; position:relative; overflow:hidden; }
+  .badge-card.earned { border-color:var(--accent2); background:linear-gradient(135deg,rgba(245,166,35,0.12),rgba(245,166,35,0.04)); }
+  .badge-card.earned::before { content:''; position:absolute; inset:0; background:radial-gradient(ellipse at 50% 0%,rgba(245,166,35,0.15),transparent 70%); }
+  .badge-icon { font-size:1.8rem; display:block; margin-bottom:4px; filter:grayscale(1); opacity:0.35; transition:all 0.3s; }
+  .badge-card.earned .badge-icon { filter:none; opacity:1; }
+  .badge-name { font-size:0.7rem; font-weight:800; line-height:1.2; }
+  .badge-desc { font-size:0.6rem; color:var(--text-muted); margin-top:2px; line-height:1.3; }
+  .badge-card:not(.earned) .badge-name { color:var(--text-muted); }
+
+  /* SETTINGS */
+  #screen-settings { background:var(--bg); }
+  .settings-header { background:var(--surface); padding:16px; display:flex; align-items:center; gap:12px; border-bottom:1px solid rgba(255,255,255,0.06); }
+  .settings-header h2 { font-family:'Fredoka One',cursive; font-size:1.4rem; }
+  .settings-body { padding:16px; overflow-y:auto; flex:1; }
+  .settings-section { margin-bottom:24px; }
+  .settings-section-title { font-size:0.7rem; text-transform:uppercase; letter-spacing:2px; color:var(--text-muted); margin-bottom:10px; padding-bottom:8px; border-bottom:1px solid rgba(255,255,255,0.06); }
+  .points-table { width:100%; }
+  .points-table td { padding:4px; }
+  .points-table td:first-child { font-size:0.83rem; color:var(--text-muted); width:48%; }
+  .points-range { -webkit-appearance:none; appearance:none; width:100%; height:6px; border-radius:3px; outline:none; background:var(--surface2); cursor:pointer; }
+  .points-range::-webkit-slider-thumb { -webkit-appearance:none; width:20px; height:20px; border-radius:50%; background:var(--accent2); cursor:pointer; }
+  .points-val { font-family:'Fredoka One',cursive; font-size:1rem; color:var(--accent2); width:24px; text-align:right; }
+
+  /* WHO SPOTTED */
+  .spotter-select-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(100px,1fr)); gap:8px; margin-top:12px; }
+  .spotter-select-btn { padding:14px 8px; border-radius:var(--radius-sm); background:var(--surface2); border:2px solid transparent; cursor:pointer; color:var(--text); font-family:'Nunito',sans-serif; font-weight:800; font-size:0.88rem; transition:all 0.18s; text-align:center; }
+  .spotter-select-btn:hover { border-color:var(--accent2); background:rgba(245,166,35,0.1); }
+  .spotter-select-btn .spotter-emoji { font-size:1.7rem; display:block; margin-bottom:4px; }
+
+  /* SIGHTINGS */
+  .sighting-row { display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid rgba(255,255,255,0.06); }
+  .sighting-row:last-child { border-bottom:none; }
+  .sighting-time { font-size:0.7rem; color:var(--text-muted); min-width:80px; }
+
+  /* HOW TO PLAY MODAL */
+  .htp-section { margin-bottom:20px; }
+  .htp-heading { font-family:'Fredoka One',cursive; font-size:1.05rem; color:var(--accent3); margin-bottom:8px; }
+  .htp-text { font-size:0.88rem; line-height:1.6; color:var(--text-muted); margin-bottom:8px; }
+  .htp-steps { display:flex; flex-direction:column; gap:7px; }
+  .htp-step { display:flex; align-items:flex-start; gap:10px; font-size:0.85rem; line-height:1.5; }
+  .htp-num { background:var(--accent2); color:#1a1a2e; font-weight:900; font-size:0.72rem; width:20px; height:20px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:1px; }
+  .htp-tip { background:rgba(78,205,196,0.1); border-left:3px solid var(--accent3); border-radius:0 8px 8px 0; padding:8px 12px; font-size:0.82rem; color:var(--text-muted); margin-top:8px; line-height:1.5; }
+  .htp-colors { display:flex; flex-direction:column; gap:6px; margin:8px 0; }
+  .htp-color-row { display:flex; align-items:center; gap:10px; font-size:0.85rem; }
+  .htp-dot { width:14px; height:14px; border-radius:4px; flex-shrink:0; }
+  .htp-views { display:flex; flex-direction:column; gap:8px; }
+  .htp-view { display:flex; align-items:flex-start; gap:10px; font-size:0.85rem; line-height:1.5; }
+  .htp-view-icon { font-size:1.3rem; flex-shrink:0; }
+  .htp-achieve-row { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+  .htp-badge { background:var(--surface2); border-radius:10px; padding:8px 10px; text-align:center; font-size:0.65rem; color:var(--text-muted); min-width:54px; flex:1; }
+  .htp-badge div { margin-top:3px; font-weight:700; }
+
+  /* ACHIEVEMENT POPUP */
+  #achieve-popup { position:fixed; top:80px; left:50%; transform:translateX(-50%) translateY(-20px); background:linear-gradient(135deg,#2a1f00,#1a1a2e); border:2px solid var(--accent2); border-radius:var(--radius); padding:14px 20px; display:flex; align-items:center; gap:12px; opacity:0; transition:all 0.4s; z-index:300; box-shadow:0 8px 32px rgba(245,166,35,0.3); pointer-events:none; min-width:260px; max-width:90vw; }
+  #achieve-popup.show { opacity:1; transform:translateX(-50%) translateY(0); }
+  .achieve-popup-icon { font-size:2.2rem; flex-shrink:0; }
+  .achieve-popup-label { font-size:0.65rem; text-transform:uppercase; letter-spacing:1.5px; color:var(--accent2); font-weight:700; }
+  .achieve-popup-name { font-family:'Fredoka One',cursive; font-size:1.2rem; }
+  .achieve-popup-desc { font-size:0.75rem; color:var(--text-muted); }
+
+  /* TOAST */
+  #toast { position:fixed; bottom:80px; left:50%; transform:translateX(-50%) translateY(16px); background:var(--surface); border:1px solid rgba(255,255,255,0.1); border-radius:50px; padding:10px 20px; font-weight:700; font-size:0.88rem; opacity:0; transition:all 0.25s; z-index:200; white-space:nowrap; box-shadow:0 4px 20px rgba(0,0,0,0.4); }
+  #toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+  /* CONFETTI */
+  .confetti-piece { position:fixed; width:9px; height:9px; border-radius:2px; animation:confettiFall 1.2s ease-in forwards; pointer-events:none; z-index:999; }
+  @keyframes confettiFall { 0%{transform:translateY(-20px) rotate(0deg);opacity:1} 100%{transform:translateY(100vh) rotate(720deg);opacity:0} }
+
+  /* BOTTOM NAV */
+  .bottom-nav { display:flex; background:var(--surface); border-top:1px solid rgba(255,255,255,0.06); padding:8px 0 max(8px,env(safe-area-inset-bottom)); }
+  .bottom-nav-btn { flex:1; display:flex; flex-direction:column; align-items:center; gap:2px; padding:5px; border:none; background:transparent; color:var(--text-muted); cursor:pointer; transition:color 0.18s; font-size:0.62rem; font-weight:700; }
+  .bottom-nav-btn span:first-child { font-size:1.25rem; }
+  .bottom-nav-btn.active { color:var(--accent3); }
+
+  @media(min-width:600px){ .spot-grid{gap:7px;grid-template-columns:repeat(5,1fr);} .hq-grid{grid-template-columns:repeat(4,1fr);} .badge-grid{grid-template-columns:repeat(4,1fr);} }
+</style>
+</head>
+<body>
+
+<!-- HOME -->
+<div id="screen-home" class="screen active">
+  <div class="spotlight-wrap">
+    <div class="logo-plate"><div class="logo-title">Spotted<span class="bang">!</span></div></div>
+    <div class="logo-tagline">🔦 License Plate Spotter Game</div>
+  </div>
+  <div class="home-runs-list">
+    <h3>Your Spot Runs</h3>
+    <div id="runs-list"></div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:10px;width:100%;max-width:480px;">
+    <button class="btn btn-primary" onclick="openNewRunModal()">🚗 New Spot Run</button>
+    <button class="btn btn-secondary btn-sm" onclick="openAbout()">How to Play</button>
+  </div>
+</div>
+
+<!-- GAME -->
+<div id="screen-game" class="screen">
+  <div class="game-header">
+    <button class="btn btn-ghost btn-icon" onclick="goHome()">←</button>
+    <div class="game-header-info">
+      <div class="game-header-title" id="game-title">Spot Run</div>
+      <div class="game-header-meta"  id="game-meta">0 spots · 0 pts</div>
+    </div>
+    <button class="btn btn-ghost btn-icon" onclick="showSettings()">⚙️</button>
+  </div>
+  <div class="spotters-bar" id="spotters-bar"></div>
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab('grid')" id="tab-grid">🎯 Spot Grid</button>
+    <button class="tab-btn"        onclick="switchTab('log')"  id="tab-log">📋 Spot Log</button>
+    <button class="tab-btn"        onclick="switchTab('map')"  id="tab-map">🗺️ Map</button>
+    <button class="tab-btn"        onclick="switchTab('hq')"   id="tab-hq">🏆 HQ</button>
+  </div>
+
+  <div class="tab-content active" id="tab-content-grid">
+    <div class="spot-grid" id="spot-grid"></div>
+  </div>
+
+  <div class="tab-content" id="tab-content-log">
+    <div class="filter-bar">
+      <button class="filter-chip active" onclick="setFilter('all',this)">All</button>
+      <button class="filter-chip" onclick="setFilter('spotted',this)">Spotted ✓</button>
+      <button class="filter-chip" onclick="setFilter('unspotted',this)">Unspotted</button>
+      <button class="filter-chip" onclick="setFilter('hot',this)">Hot Spots 🔥</button>
+    </div>
+    <table class="log-table">
+      <thead><tr>
+        <th onclick="setSortBy('name')">State ↕</th>
+        <th onclick="setSortBy('points')">Pts ↕</th>
+        <th onclick="setSortBy('count')">×</th>
+        <th>Spotters</th>
+        <th></th>
+      </tr></thead>
+      <tbody id="log-body"></tbody>
+    </table>
+  </div>
+
+  <div class="tab-content" id="tab-content-map">
+    <div id="map-container"></div>
+    <div id="map-legend"></div>
+    <p style="font-size:0.7rem;color:var(--text-muted);margin-top:8px;text-align:center;">Tap a state to log a new sighting · ×N = sighting count</p>
+    <div id="map-tooltip"></div>
+  </div>
+
+  <div class="tab-content" id="tab-content-hq">
+    <div class="hq-grid" id="hq-grid"></div>
+    <div class="progress-wrap">
+      <div class="progress-label"><span>Unique States</span><span id="progress-text">0/51</span></div>
+      <div class="progress-track"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+    </div>
+    <div id="leaderboard-wrap"></div>
+    <div class="achieve-section-title">🏅 Achievements <span class="achieve-count" id="achieve-count"></span></div>
+    <div class="badge-grid" id="badge-grid"></div>
+  </div>
+
+  <div class="bottom-nav">
+    <button class="bottom-nav-btn active" onclick="switchTab('grid')" id="nav-grid"><span>🎯</span><span>Spot Grid</span></button>
+    <button class="bottom-nav-btn"        onclick="switchTab('log')"  id="nav-log"><span>📋</span><span>Spot Log</span></button>
+    <button class="bottom-nav-btn"        onclick="switchTab('map')"  id="nav-map"><span>🗺️</span><span>Map</span></button>
+    <button class="bottom-nav-btn"        onclick="switchTab('hq')"   id="nav-hq"><span>🏆</span><span>HQ</span></button>
+  </div>
+</div>
+
+<!-- SETTINGS -->
+<div id="screen-settings" class="screen">
+  <div class="settings-header">
+    <button class="btn btn-ghost btn-icon" onclick="closeSettings()">←</button>
+    <h2>⚙️ Spotter HQ</h2>
+  </div>
+  <div class="settings-body">
+    <div class="settings-section">
+      <div class="settings-section-title">Spot Run Info</div>
+      <div class="field"><label>Run Name</label><input id="setting-run-name" type="text" placeholder="Summer Road Trip 2025"></div>
+      <div class="field"><label>Home Turf</label><select id="setting-home-state" onchange="onHomeTurfChange()"></select></div>
+      <button class="btn btn-secondary btn-sm" onclick="saveRunSettings()">Save Changes</button>
+    </div>
+    <div class="settings-section">
+      <div class="settings-section-title">Spotters</div>
+      <div id="settings-spotters-list"></div>
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <input id="new-spotter-name" type="text" placeholder="Add spotter name..." style="flex:1;padding:10px 14px;background:var(--surface2);border:2px solid rgba(255,255,255,0.1);border-radius:var(--radius-sm);color:var(--text);font-family:Nunito,sans-serif;font-size:0.95rem;outline:none;">
+        <button class="btn btn-spot btn-sm" onclick="addSpotter()">+ Add</button>
+      </div>
+    </div>
+    <div class="settings-section">
+      <div class="settings-section-title">Spot Scores</div>
+      <p style="font-size:0.75rem;color:var(--text-muted);margin-bottom:10px;">Auto-set when you change Home Turf. Fine-tune any state here.</p>
+      <table class="points-table" id="points-editor"></table>
+    </div>
+    <div class="settings-section">
+      <div class="settings-section-title">Danger Zone</div>
+      <button class="btn btn-danger btn-sm" onclick="resetRun()">🔄 Reset All Spots</button>
+      <button class="btn btn-danger btn-sm" style="margin-left:8px;" onclick="deleteRun()">🗑️ Delete Run</button>
+    </div>
+  </div>
+</div>
+
+<!-- NEW RUN MODAL -->
+<div class="modal-overlay" id="modal-new-run">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h2>🚗 New Spot Run</h2>
+    <div class="field"><label>Run Name</label><input id="new-run-name" type="text" placeholder="e.g. Summer 2025 Road Trip"></div>
+    <div class="field"><label>Home Turf</label><select id="new-run-home"></select></div>
+    <div class="field">
+      <label>Spotters</label>
+      <div id="new-run-spotters" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;min-height:24px;"></div>
+      <div style="display:flex;gap:8px;">
+        <input id="new-spotter-input" type="text" placeholder="Add spotter name..." style="flex:1;padding:10px 14px;background:var(--surface2);border:2px solid rgba(255,255,255,0.1);border-radius:var(--radius-sm);color:var(--text);font-family:Nunito,sans-serif;font-size:0.9rem;outline:none;" onkeydown="if(event.key==='Enter')addNewRunSpotter()">
+        <button class="btn btn-spot btn-sm" onclick="addNewRunSpotter()">+</button>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:10px;">
+      <button class="btn btn-primary" style="flex:1" onclick="createRun()">Let's Spot! 🔦</button>
+      <button class="btn btn-secondary" onclick="closeModal('modal-new-run')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- WHO SPOTTED MODAL -->
+<div class="modal-overlay" id="modal-who-spotted">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h2 id="who-spotted-title">Who spotted it?</h2>
+    <div class="spotter-select-grid" id="who-spotted-spotters"></div>
+    <button class="btn btn-ghost" style="width:100%;margin-top:12px;" onclick="closeModal('modal-who-spotted')">Cancel</button>
+  </div>
+</div>
+
+<!-- SIGHTINGS MODAL -->
+<div class="modal-overlay" id="modal-sightings">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h2 id="sightings-title">Sightings</h2>
+    <div id="sightings-list"></div>
+    <button class="btn btn-ghost" style="width:100%;margin-top:12px;" onclick="closeModal('modal-sightings')">Close</button>
+  </div>
+</div>
+
+<!-- HOW TO PLAY MODAL -->
+<div class="modal-overlay" id="modal-how-to-play">
+  <div class="modal" style="padding-bottom:32px;">
+    <div class="modal-handle"></div>
+
+    <div style="text-align:center;margin-bottom:20px;">
+      <div style="font-size:3rem;margin-bottom:6px;">🔦</div>
+      <div style="font-family:'Fredoka One',cursive;font-size:1.8rem;color:var(--accent2);">How to Play</div>
+      <div style="font-size:0.8rem;color:var(--text-muted);margin-top:4px;">Spotted! — License Plate Spotter Game</div>
+    </div>
+
+    <!-- What is it? -->
+    <div class="htp-section">
+      <div class="htp-heading">🚗 What is Spotted?</div>
+      <div class="htp-text">Look out the car window for license plates from different US states and D.C. When you see one — yell <strong style="color:var(--accent2)">SPOTTED!</strong> and tap it in the app. The further away the state is, the more points you earn!</div>
+    </div>
+
+    <!-- How to start -->
+    <div class="htp-section">
+      <div class="htp-heading">▶️ Getting Started</div>
+      <div class="htp-steps">
+        <div class="htp-step"><span class="htp-num">1</span><span>Tap <strong>New Spot Run</strong> on the home screen</span></div>
+        <div class="htp-step"><span class="htp-num">2</span><span>Give your trip a name (e.g. "Summer Vacation")</span></div>
+        <div class="htp-step"><span class="htp-num">3</span><span>Choose your <strong>Home Turf</strong> — the state you live in</span></div>
+        <div class="htp-step"><span class="htp-num">4</span><span>Add the names of everyone playing</span></div>
+        <div class="htp-step"><span class="htp-num">5</span><span>Tap <strong>Let's Spot! 🔦</strong> and start looking!</span></div>
+      </div>
+    </div>
+
+    <!-- Spotting plates -->
+    <div class="htp-section">
+      <div class="htp-heading">🎯 Spotting a Plate</div>
+      <div class="htp-text">When you see a license plate from another state:</div>
+      <div class="htp-steps">
+        <div class="htp-step"><span class="htp-num">1</span><span>Find that state on the <strong>Spot Grid</strong> or <strong>Map</strong></span></div>
+        <div class="htp-step"><span class="htp-num">2</span><span>Tap it!</span></div>
+        <div class="htp-step"><span class="htp-num">3</span><span>Choose <strong>who spotted it</strong> if playing with others</span></div>
+        <div class="htp-step"><span class="htp-num">4</span><span>Watch your score go up 🎉</span></div>
+      </div>
+      <div class="htp-tip">💡 You can spot the same state more than once — every sighting earns points!</div>
+    </div>
+
+    <!-- Points -->
+    <div class="htp-section">
+      <div class="htp-heading">⭐ How Points Work</div>
+      <div class="htp-text">Your <strong>Home Turf</strong> state scores <strong>0 points</strong> — you see those plates all the time! Nearby states score fewer points. Far away or rare states score the most.</div>
+      <div class="htp-colors">
+        <div class="htp-color-row"><span class="htp-dot" style="background:var(--pt1)"></span><span>1 pt — Neighboring states</span></div>
+        <div class="htp-color-row"><span class="htp-dot" style="background:var(--pt4)"></span><span>4–5 pts — Mid-distance states</span></div>
+        <div class="htp-color-row"><span class="htp-dot" style="background:var(--pt7)"></span><span>7–8 pts — Far away states</span></div>
+        <div class="htp-color-row"><span class="htp-dot" style="background:var(--pt10)"></span><span>10 pts — Alaska, Hawaii, D.C. 🔥</span></div>
+      </div>
+      <div class="htp-tip">🌡️ On the map, <strong style="color:var(--pt1)">cool blue</strong> = close, <strong style="color:var(--pt10)">hot red</strong> = far!</div>
+    </div>
+
+    <!-- Views -->
+    <div class="htp-section">
+      <div class="htp-heading">📱 The Four Views</div>
+      <div class="htp-views">
+        <div class="htp-view"><span class="htp-view-icon">🎯</span><div><strong>Spot Grid</strong> — All 51 states as tiles. Tap to spot!</div></div>
+        <div class="htp-view"><span class="htp-view-icon">📋</span><div><strong>Spot Log</strong> — See every sighting and who spotted it</div></div>
+        <div class="htp-view"><span class="htp-view-icon">🗺️</span><div><strong>Map</strong> — Color-coded US map. Tap states here too!</div></div>
+        <div class="htp-view"><span class="htp-view-icon">🏆</span><div><strong>HQ</strong> — Scores, leaderboard &amp; achievement badges</div></div>
+      </div>
+    </div>
+
+    <!-- Multiplayer -->
+    <div class="htp-section">
+      <div class="htp-heading">👥 Playing Together</div>
+      <div class="htp-text">Add multiple <strong>Spotters</strong> to a run — one for each person in the car. When someone spots a plate, select their name. The <strong>Spotter Leaderboard</strong> in HQ shows who's winning!</div>
+      <div class="htp-tip">🏅 Each spotter earns their own score. May the best spotter win!</div>
+    </div>
+
+    <!-- Achievements -->
+    <div class="htp-section">
+      <div class="htp-heading">🏅 Achievements</div>
+      <div class="htp-text">Earn special badges as you play! Check the <strong>HQ tab</strong> to see all 17 achievements. Can you unlock them all?</div>
+      <div class="htp-achieve-row">
+        <div class="htp-badge">🔦<div>First Spot!</div></div>
+        <div class="htp-badge">🌺<div>Aloha!</div></div>
+        <div class="htp-badge">🏔️<div>Last Frontier</div></div>
+        <div class="htp-badge">👑<div>Spot On!</div></div>
+        <div class="htp-badge">💯<div>Century Club</div></div>
+      </div>
+    </div>
+
+    <!-- Tips -->
+    <div class="htp-section">
+      <div class="htp-heading">🌟 Tips &amp; Tricks</div>
+      <div class="htp-steps">
+        <div class="htp-step"><span>👀</span><span>Look at <strong>rest stops, parking lots, and traffic jams</strong> — great places to spot rare plates!</span></div>
+        <div class="htp-step"><span>🚛</span><span><strong>Trucks and RVs</strong> often have plates from far-away states</span></div>
+        <div class="htp-step"><span>🏨</span><span>Hotel parking lots are gold mines for rare plates</span></div>
+        <div class="htp-step"><span>📍</span><span>Your <strong>Home Turf</strong> can be changed in Settings anytime</span></div>
+        <div class="htp-step"><span>🔄</span><span>Start a new <strong>Spot Run</strong> for each trip to track separately</span></div>
+      </div>
+    </div>
+
+    <button class="btn btn-primary" style="width:100%;margin-top:8px;" onclick="closeModal('modal-how-to-play')">Let's Go! 🔦</button>
+  </div>
+</div>
+
+<!-- ACHIEVEMENT POPUP -->
+<div id="achieve-popup">
+  <div class="achieve-popup-icon" id="achieve-popup-icon">🏅</div>
+  <div>
+    <div class="achieve-popup-label">Achievement Unlocked!</div>
+    <div class="achieve-popup-name" id="achieve-popup-name"></div>
+    <div class="achieve-popup-desc" id="achieve-popup-desc"></div>
+  </div>
+</div>
+<div id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
+<script>
+// ══ STATES ══
+const STATES=[
+  {code:'AL',name:'Alabama'},{code:'AK',name:'Alaska'},{code:'AZ',name:'Arizona'},
+  {code:'AR',name:'Arkansas'},{code:'CA',name:'California'},{code:'CO',name:'Colorado'},
+  {code:'CT',name:'Connecticut'},{code:'DE',name:'Delaware'},{code:'DC',name:'D.C.'},
+  {code:'FL',name:'Florida'},{code:'GA',name:'Georgia'},{code:'HI',name:'Hawaii'},
+  {code:'ID',name:'Idaho'},{code:'IL',name:'Illinois'},{code:'IN',name:'Indiana'},
+  {code:'IA',name:'Iowa'},{code:'KS',name:'Kansas'},{code:'KY',name:'Kentucky'},
+  {code:'LA',name:'Louisiana'},{code:'ME',name:'Maine'},{code:'MD',name:'Maryland'},
+  {code:'MA',name:'Massachusetts'},{code:'MI',name:'Michigan'},{code:'MN',name:'Minnesota'},
+  {code:'MS',name:'Mississippi'},{code:'MO',name:'Missouri'},{code:'MT',name:'Montana'},
+  {code:'NE',name:'Nebraska'},{code:'NV',name:'Nevada'},{code:'NH',name:'New Hampshire'},
+  {code:'NJ',name:'New Jersey'},{code:'NM',name:'New Mexico'},{code:'NY',name:'New York'},
+  {code:'NC',name:'N. Carolina'},{code:'ND',name:'N. Dakota'},{code:'OH',name:'Ohio'},
+  {code:'OK',name:'Oklahoma'},{code:'OR',name:'Oregon'},{code:'PA',name:'Pennsylvania'},
+  {code:'RI',name:'Rhode Island'},{code:'SC',name:'S. Carolina'},{code:'SD',name:'S. Dakota'},
+  {code:'TN',name:'Tennessee'},{code:'TX',name:'Texas'},{code:'UT',name:'Utah'},
+  {code:'VT',name:'Vermont'},{code:'VA',name:'Virginia'},{code:'WA',name:'Washington'},
+  {code:'WV',name:'W. Virginia'},{code:'WI',name:'Wisconsin'},{code:'WY',name:'Wyoming'},
+];
+
+// ══ SCORING ENGINE ══
+const PT_COLORS={0:'#2e2e3e',1:'#4a90d9',2:'#5bafd6',3:'#6dc4b0',4:'#8dcf7a',5:'#b8d94a',6:'#e8d030',7:'#f0a020',8:'#e86420',9:'#d03010',10:'#a00000'};
+const PT_TEXT={0:'#888',1:'#fff',2:'#1a2a2a',3:'#1a2a1a',4:'#1a2a1a',5:'#1a1a00',6:'#1a1a00',7:'#1a0a00',8:'#fff',9:'#fff',10:'#ffcccc'};
+
+const GEO={AL:[32.8,-86.8],AK:[64.2,-153.0],AZ:[34.3,-111.1],AR:[34.9,-92.4],CA:[37.2,-119.6],CO:[39.0,-105.5],CT:[41.6,-72.7],DE:[39.0,-75.5],DC:[38.9,-77.0],FL:[28.1,-81.6],GA:[32.7,-83.4],HI:[20.3,-156.4],ID:[44.4,-114.6],IL:[40.0,-89.2],IN:[39.9,-86.3],IA:[42.0,-93.5],KS:[38.5,-98.4],KY:[37.5,-85.3],LA:[31.2,-91.8],ME:[45.4,-69.0],MD:[39.0,-76.8],MA:[42.3,-71.8],MI:[44.3,-85.4],MN:[46.4,-93.1],MS:[32.7,-89.7],MO:[38.4,-92.3],MT:[47.0,-110.0],NE:[41.5,-99.9],NV:[39.3,-116.6],NH:[43.7,-71.6],NJ:[40.1,-74.4],NM:[34.5,-106.1],NY:[42.9,-75.5],NC:[35.6,-79.4],ND:[47.5,-100.5],OH:[40.4,-82.8],OK:[35.6,-97.5],OR:[44.1,-120.5],PA:[40.9,-77.8],RI:[41.7,-71.5],SC:[33.9,-80.9],SD:[44.4,-100.3],TN:[35.9,-86.4],TX:[31.5,-99.3],UT:[39.3,-111.1],VT:[44.0,-72.7],VA:[37.8,-78.2],WA:[47.4,-120.5],WV:[38.6,-80.6],WI:[44.3,-89.8],WY:[43.0,-107.6]};
+
+function haversine(a,b){const R=3959,r=Math.PI/180,dLat=(b[0]-a[0])*r,dLon=(b[1]-a[1])*r,s=Math.sin(dLat/2)**2+Math.cos(a[0]*r)*Math.cos(b[0]*r)*Math.sin(dLon/2)**2;return R*2*Math.atan2(Math.sqrt(s),Math.sqrt(1-s));}
+const BREAKS=[200,380,560,750,1000,1280,1580,1950,2450];
+function d2p(m){for(let i=0;i<BREAKS.length;i++)if(m<=BREAKS[i])return i+1;return 9;}
+
+const AK_NEAR=new Set(['WA','OR','ID','MT']);
+const DC_FLOOR=8;
+const NEIGHBORS={OR:['WA','CA','ID','NV'],WA:['OR','ID'],CA:['OR','NV','AZ'],NV:['CA','OR','ID','UT','AZ'],ID:['WA','OR','MT','WY','UT','NV'],MT:['ID','WY','ND','SD'],WY:['MT','ID','UT','CO','NE','SD'],UT:['ID','NV','AZ','CO','WY'],AZ:['CA','NV','UT','NM'],NM:['AZ','UT','CO','OK','TX'],CO:['WY','NE','KS','OK','NM','AZ','UT'],KS:['CO','NE','MO','OK'],NE:['SD','IA','MO','KS','CO','WY'],SD:['ND','MN','IA','NE','WY','MT'],ND:['MN','SD','MT'],MN:['ND','SD','IA','WI'],IA:['MN','WI','IL','MO','NE','SD'],MO:['IA','IL','KY','TN','AR','OK','KS','NE'],AR:['MO','TN','MS','LA','TX','OK'],OK:['KS','MO','AR','TX','NM','CO'],TX:['NM','OK','AR','LA'],LA:['TX','AR','MS'],MS:['LA','AR','TN','AL'],AL:['FL','GA','TN','MS'],FL:['GA','AL'],GA:['FL','AL','TN','NC','SC'],SC:['NC','GA'],NC:['VA','TN','SC','GA'],TN:['KY','VA','NC','GA','AL','MS','AR','MO'],KY:['OH','IN','IL','MO','TN','VA','WV'],VA:['MD','DC','WV','KY','TN','NC'],WV:['OH','PA','MD','VA','KY'],MD:['PA','DE','VA','WV','DC'],DE:['MD','PA','NJ'],PA:['NY','NJ','DE','MD','WV','OH'],NJ:['NY','PA','DE'],NY:['VT','MA','CT','NJ','PA'],CT:['NY','MA','RI'],RI:['CT','MA'],MA:['NY','VT','NH','RI','CT'],NH:['ME','VT','MA'],VT:['NY','NH','MA'],ME:['NH'],MI:['OH','IN','WI'],WI:['MN','IA','IL','MI'],IL:['WI','IA','MO','KY','IN'],IN:['IL','MI','OH','KY'],OH:['PA','WV','KY','IN','MI'],DC:['MD','VA'],AK:[],HI:[]};
+
+const PRESET={
+  WA:{AL:6,AZ:3,AR:6,CA:1,CO:3,CT:9,DE:9,DC:10,FL:8,GA:7,ID:1,IL:5,IN:5,IA:5,KS:4,KY:6,LA:6,ME:9,MD:8,MA:9,MI:5,MN:5,MS:6,MO:5,MT:3,NE:4,NV:2,NH:9,NJ:8,NM:3,NY:8,NC:7,ND:4,OH:5,OK:4,OR:1,PA:8,RI:10,SC:7,SD:4,TN:6,TX:3,UT:2,VT:9,VA:7,WV:7,WI:5,WY:3},
+  CA:{AL:6,AZ:2,AR:5,WA:2,CO:3,CT:9,DE:9,DC:9,FL:8,GA:7,ID:2,IL:5,IN:6,IA:5,KS:4,KY:6,LA:5,ME:10,MD:8,MA:9,MI:6,MN:5,MS:6,MO:5,MT:3,NE:4,NV:1,NH:10,NJ:8,NM:2,NY:8,NC:7,ND:4,OH:6,OK:4,OR:2,PA:8,RI:10,SC:7,SD:4,TN:6,TX:3,UT:2,VT:10,VA:7,WV:7,WI:5,WY:3},
+  TX:{AL:4,AZ:2,AR:2,CA:3,CO:3,CT:9,DE:9,DC:9,FL:5,GA:5,ID:5,IL:4,IN:5,IA:5,KS:3,KY:5,LA:2,ME:10,MD:8,MA:9,MI:6,MN:6,MS:3,MO:4,MT:5,NE:4,NV:3,NH:10,NJ:8,NM:1,NY:8,NC:6,ND:6,OH:6,OK:1,OR:5,PA:8,RI:10,SC:6,SD:5,TN:4,WA:5,UT:3,VT:10,VA:7,WV:7,WI:6,WY:4},
+  FL:{AL:2,AZ:5,AR:4,CA:6,CO:5,CT:7,DE:7,DC:8,GA:1,ID:8,IL:5,IN:5,IA:6,KS:5,KY:4,LA:3,ME:8,MD:6,MA:7,MI:5,MN:6,MS:3,MO:5,MT:7,NE:5,NV:7,NH:8,NJ:6,NM:5,NY:6,NC:3,ND:7,OH:5,OK:5,OR:8,PA:6,RI:8,SC:2,SD:6,TN:4,TX:3,UT:6,VT:8,VA:4,WA:8,WV:5,WI:6,WY:7},
+  NY:{AL:5,AZ:6,AR:6,CA:8,CO:6,CT:2,DE:3,DC:5,FL:4,GA:5,ID:8,IL:4,IN:5,IA:6,KS:6,KY:5,LA:6,ME:3,MD:4,MA:2,MI:4,MN:6,MS:6,MO:6,MT:8,NE:6,NV:8,NH:3,NJ:2,NM:7,NC:4,ND:8,OH:3,OK:7,OR:9,PA:2,RI:2,SC:5,SD:7,TN:5,TX:6,UT:7,VT:2,VA:4,WA:9,WV:4,WI:5,WY:7},
+};
+
+function generatePoints(homeCode){
+  const pts={}, base=PRESET[homeCode]?{...PRESET[homeCode]}:null, home=GEO[homeCode], nb=new Set(NEIGHBORS[homeCode]||[]);
+  STATES.forEach(({code})=>{
+    if(code===homeCode){pts[code]=0;return;}
+    if(code==='HI'){pts[code]=10;return;}
+    if(code==='AK'){pts[code]=AK_NEAR.has(homeCode)?9:10;return;}
+    if(base&&base[code]!==undefined){pts[code]=base[code];return;}
+    if(nb.has(code)){pts[code]=1;return;}
+    if(code==='DC'){pts[code]=home?Math.max(DC_FLOOR,d2p(haversine(home,GEO[code]))):DC_FLOOR;return;}
+    pts[code]=home&&GEO[code]?d2p(haversine(home,GEO[code])):5;
+  });
+  return pts;
+}
+
+// ══ ACHIEVEMENTS ══
+const ACHIEVEMENTS=[
+  {id:'first_spot',  icon:'🔦',name:'First Spot!',       desc:'Log your first sighting',                check:t=>totalSightings(t)>=1},
+  {id:'ten_spots',   icon:'🔟',name:'Ten Spotted',        desc:'Spot 10 unique states',                  check:t=>uniqueSpotted(t)>=10},
+  {id:'sweet_spot',  icon:'🎯',name:'Sweet Spot',         desc:'Spot 25 unique states',                  check:t=>uniqueSpotted(t)>=25},
+  {id:'blind_spot',  icon:'😎',name:'No Blind Spots',     desc:'Spot 40+ unique states',                 check:t=>uniqueSpotted(t)>=40},
+  {id:'spot_on',     icon:'👑',name:'Spot On!',           desc:'Spot all 51 (50 states + D.C.)',         check:t=>uniqueSpotted(t)>=51},
+  {id:'hot_spot',    icon:'🔥',name:'Hot Spot',           desc:'Find a 10-point plate',                  check:t=>uniqueByMinPts(t,10)>=1},
+  {id:'rare_spotter',icon:'💎',name:'Rare Spotter',       desc:'Find 5 states worth 8+ pts',             check:t=>uniqueByMinPts(t,8)>=5},
+  {id:'point_surge', icon:'⚡',name:'Point Surge',        desc:'Score 50+ total points',                 check:t=>calcScore(t,-1)>=50},
+  {id:'century',     icon:'💯',name:'Century Club',       desc:'Score 100+ total points',                check:t=>calcScore(t,-1)>=100},
+  {id:'aloha',       icon:'🌺',name:'Aloha!',             desc:'Spot Hawaii',                            check:t=>stateSpotted(t,'HI')},
+  {id:'last_frontier',icon:'🏔️',name:'Last Frontier',    desc:'Spot Alaska',                            check:t=>stateSpotted(t,'AK')},
+  {id:'capital',     icon:'🏛️',name:'Capital Spotter',   desc:'Spot D.C.',                              check:t=>stateSpotted(t,'DC')},
+  {id:'ocean_to_ocean',icon:'🌊',name:'Ocean to Ocean',  desc:'Spot both CA and ME',                    check:t=>stateSpotted(t,'CA')&&stateSpotted(t,'ME')},
+  {id:'corners',     icon:'🧭',name:'Four Corners',       desc:'Spot WA, FL, ME, and CA',                check:t=>['WA','FL','ME','CA'].every(c=>stateSpotted(t,c))},
+  {id:'spotlight',   icon:'🌟',name:'Spotlight',          desc:'Log 5 sightings in one session',         check:t=>t.sessionSpots>=5},
+  {id:'double_spot', icon:'🎲',name:'Double Spot',        desc:'Spot the same state twice',              check:t=>STATES.some(s=>getSightings(t,s.code).length>=2)},
+  {id:'on_a_roll',   icon:'🎳',name:'On a Roll',          desc:'Spot 3 states worth 7+ pts',             check:t=>uniqueByMinPts(t,7)>=3},
+];
+
+// ══ DATA HELPERS (multi-sighting) ══
+function getSightings(run,code){return run.sightings[code]||[];}
+function stateSpotted(run,code){return getSightings(run,code).length>0;}
+function uniqueSpotted(run){return STATES.filter(s=>stateSpotted(run,s.code)).length;}
+function totalSightings(run){return STATES.reduce((n,s)=>n+getSightings(run,s.code).length,0);}
+function uniqueByMinPts(run,min){return STATES.filter(s=>stateSpotted(run,s.code)&&(run.points[s.code]||0)>=min).length;}
+function calcScore(run,spIdx){
+  let sc=0;
+  STATES.forEach(({code})=>{const pts=run.points[code]||0;getSightings(run,code).forEach(s=>{if(spIdx<0||s.by===spIdx)sc+=pts;});});
+  return sc;
+}
+function spotterCount(run,idx){return STATES.reduce((n,s)=>n+getSightings(run,s.code).filter(sg=>sg.by===idx).length,0);}
+
+// ══ APP STATE ══
+const EMOJIS=['🦁','🐯','🐻','🦊','🐺','🦄','🐧','🦅','🐬','🐘','🦋','🌟','🦖','🐉','🦸'];
+
+
+// ══ PLATE STYLES — real plate colors, names and taglines for all 51 ══
+const PLATE_STYLES={
+  AL:{bg:'#f5c040',fg:'#1a1a5a',band:'#1a5a9a',bandfg:'#fff',bandtxt:'www.alabama.travel',name:'ALABAMA',tag:''},
+  AK:{bg:'#003087',fg:'#f5c518',band:'#003087',bandfg:'#f5c518',bandtxt:'THE LAST FRONTIER',name:'ALASKA',tag:''},
+  AZ:{bg:'#e8d090',fg:'#8b1a1a',band:'#1a3a8a',bandfg:'#f5c518',bandtxt:'GRAND CANYON STATE',name:'ARIZONA',tag:''},
+  AR:{bg:'#e8f0f8',fg:'#1a3a8a',band:'#1a3a8a',bandfg:'#fff',bandtxt:'THE NATURAL STATE',name:'ARKANSAS',tag:''},
+  CA:{bg:'#f5f5f0',fg:'#1a3a8a',band:'#1a3a8a',bandfg:'#fff',bandtxt:'dmv.ca.gov',name:'CALIFORNIA',tag:''},
+  CO:{bg:'#e8f0f8',fg:'#1a3a8a',band:'#1a3a8a',bandfg:'#fff',bandtxt:'COLORFUL COLORADO',name:'COLORADO',tag:''},
+  CT:{bg:'#dce8f8',fg:'#1a3a8a',band:'#1a3a8a',bandfg:'#fff',bandtxt:'CONSTITUTION STATE',name:'CONNECTICUT',tag:''},
+  DE:{bg:'#003087',fg:'#f5c518',band:'#003087',bandfg:'#f5c518',bandtxt:'THE FIRST STATE',name:'DELAWARE',tag:''},
+  DC:{bg:'#e8e8f8',fg:'#c8102e',band:'#c8102e',bandfg:'#fff',bandtxt:'TAXATION WITHOUT REPRESENTATION',name:'WASHINGTON D.C.',tag:''},
+  FL:{bg:'#f5f0e0',fg:'#c8102e',band:'#1a7a3a',bandfg:'#fff',bandtxt:'MyFlorida.com',name:'FLORIDA',tag:'SUNSHINE STATE'},
+  GA:{bg:'#f5f0e8',fg:'#8b1a1a',band:'#8b1a1a',bandfg:'#fff',bandtxt:'PEACH STATE',name:'GEORGIA',tag:''},
+  HI:{bg:'#1a5a9a',fg:'#f5c518',band:'#1a3a8a',bandfg:'#f5c518',bandtxt:'ALOHA STATE',name:'HAWAII',tag:''},
+  ID:{bg:'#f5f0e8',fg:'#8b1a1a',band:'#2a6a3a',bandfg:'#fff',bandtxt:'FAMOUS POTATOES',name:'IDAHO',tag:''},
+  IL:{bg:'#e8f0f8',fg:'#1a3a8a',band:'#1a3a8a',bandfg:'#fff',bandtxt:'LAND OF LINCOLN',name:'ILLINOIS',tag:''},
+  IN:{bg:'#1a2a6e',fg:'#f5c518',band:'#1a2a6e',bandfg:'#f5c518',bandtxt:'IN GOD WE TRUST',name:'INDIANA',tag:''},
+  IA:{bg:'#f5f5f0',fg:'#1a3a6a',band:'#f5c518',bandfg:'#1a3a6a',bandtxt:'IOWA',name:'IOWA',tag:''},
+  KS:{bg:'#f5c518',fg:'#1a3a8a',band:'#c8102e',bandfg:'#fff',bandtxt:'TO THE STARS',name:'KANSAS',tag:''},
+  KY:{bg:'#dce8f8',fg:'#1a3a8a',band:'#1a3a8a',bandfg:'#fff',bandtxt:'UNBRIDLED SPIRIT',name:'KENTUCKY',tag:''},
+  LA:{bg:'#f5f5f0',fg:'#1a3a8a',band:'#1a3a8a',bandfg:'#f5c518',bandtxt:"SPORTSMAN'S PARADISE",name:'LOUISIANA',tag:''},
+  ME:{bg:'#f5f5f0',fg:'#1a3a8a',band:'#003087',bandfg:'#fff',bandtxt:'VACATIONLAND',name:'MAINE',tag:''},
+  MD:{bg:'#f5f5f0',fg:'#c8102e',band:'#c8102e',bandfg:'#fff',bandtxt:'Maryland',name:'MARYLAND',tag:''},
+  MA:{bg:'#f5f5f0',fg:'#c8102e',band:'#c8102e',bandfg:'#fff',bandtxt:'THE SPIRIT OF AMERICA',name:'MASSACHUSETTS',tag:''},
+  MI:{bg:'#dce8f8',fg:'#1a3a8a',band:'#1a3a8a',bandfg:'#fff',bandtxt:'michigan.org',name:'MICHIGAN',tag:''},
+  MN:{bg:'#dce8f8',fg:'#1a3a8a',band:'#1a3a8a',bandfg:'#f5c518',bandtxt:'10,000 LAKES',name:'MINNESOTA',tag:''},
+  MS:{bg:'#f5f5f0',fg:'#1a3a8a',band:'#1a3a8a',bandfg:'#fff',bandtxt:'MISSISSIPPI',name:'MISSISSIPPI',tag:''},
+  MO:{bg:'#f5f5f0',fg:'#1a3a8a',band:'#1a3a8a',bandfg:'#f5c518',bandtxt:'SHOW-ME STATE',name:'MISSOURI',tag:''},
+  MT:{bg:'#003087',fg:'#f5c518',band:'#003087',bandfg:'#f5c518',bandtxt:'BIG SKY COUNTRY',name:'MONTANA',tag:''},
+  NE:{bg:'#dce8f8',fg:'#1a3a8a',band:'#1a3a8a',bandfg:'#fff',bandtxt:'CORNHUSKER STATE',name:'NEBRASKA',tag:''},
+  NV:{bg:'#1a3a8a',fg:'#f5c518',band:'#1a3a8a',bandfg:'#f5c518',bandtxt:'HOME MEANS NEVADA',name:'NEVADA',tag:''},
+  NH:{bg:'#f5f5f0',fg:'#2a5a2a',band:'#2a5a2a',bandfg:'#fff',bandtxt:'LIVE FREE OR DIE',name:'NEW HAMPSHIRE',tag:''},
+  NJ:{bg:'#f5c518',fg:'#1a3a8a',band:'#f5c518',bandfg:'#1a3a8a',bandtxt:'GARDEN STATE',name:'NEW JERSEY',tag:''},
+  NM:{bg:'#2a9a8a',fg:'#f5c518',band:'#228878',bandfg:'#fff',bandtxt:'NEW MEXICO USA',name:'NEW MEXICO',tag:'LAND OF ENCHANTMENT'},
+  NY:{bg:'#f5f5f0',fg:'#1a3a8a',band:'#c8102e',bandfg:'#fff',bandtxt:'EXCELSIOR',name:'NEW YORK',tag:''},
+  NC:{bg:'#dce8f8',fg:'#1a3a8a',band:'#c8102e',bandfg:'#fff',bandtxt:'FIRST IN FREEDOM',name:'NORTH CAROLINA',tag:''},
+  ND:{bg:'#dce8f8',fg:'#1a3a8a',band:'#2a6a8a',bandfg:'#fff',bandtxt:'PEACE GARDEN STATE',name:'NORTH DAKOTA',tag:''},
+  OH:{bg:'#dce8f8',fg:'#c8102e',band:'#c8102e',bandfg:'#fff',bandtxt:'BIRTHPLACE OF AVIATION',name:'OHIO',tag:''},
+  OK:{bg:'#c8102e',fg:'#fff',band:'#8a0a1e',bandfg:'#f5c518',bandtxt:'IMAGINE THAT',name:'OKLAHOMA',tag:''},
+  OR:{bg:'#1a4a2a',fg:'#f5c518',band:'#1a4a2a',bandfg:'#f5c518',bandtxt:'PACIFIC WONDERLAND',name:'OREGON',tag:''},
+  PA:{bg:'#dce8f8',fg:'#1a3a8a',band:'#1a3a8a',bandfg:'#f5c518',bandtxt:'LET FREEDOM RING',name:'PENNSYLVANIA',tag:''},
+  RI:{bg:'#f5f5f0',fg:'#1a3a8a',band:'#1a3a8a',bandfg:'#fff',bandtxt:'OCEAN STATE',name:'RHODE ISLAND',tag:''},
+  SC:{bg:'#f5f5f0',fg:'#1a3a8a',band:'#1a3a8a',bandfg:'#f5c518',bandtxt:'WHILE I BREATHE, I HOPE',name:'SOUTH CAROLINA',tag:''},
+  SD:{bg:'#4a9a8a',fg:'#f5f0e0',band:'#2a6a8a',bandfg:'#fff',bandtxt:'GREAT FACES GREAT PLACES',name:'SOUTH DAKOTA',tag:''},
+  TN:{bg:'#f5f5f0',fg:'#1a3a8a',band:'#c8102e',bandfg:'#fff',bandtxt:'TNVACATION.COM',name:'TENNESSEE',tag:''},
+  TX:{bg:'#f5f5f0',fg:'#1a3a8a',band:'#1a3a8a',bandfg:'#fff',bandtxt:'THE LONE STAR STATE',name:'TEXAS',tag:''},
+  UT:{bg:'#f5f0e8',fg:'#c8102e',band:'#c8102e',bandfg:'#fff',bandtxt:'GREATEST SNOW ON EARTH',name:'UTAH',tag:''},
+  VT:{bg:'#2a6a2a',fg:'#f5f5f0',band:'#1a4a1a',bandfg:'#f5f5f0',bandtxt:'GREEN MOUNTAIN STATE',name:'VERMONT',tag:''},
+  VA:{bg:'#f5f5f0',fg:'#1a3a8a',band:'#1a3a8a',bandfg:'#fff',bandtxt:'VIRGINIA IS FOR LOVERS',name:'VIRGINIA',tag:''},
+  WA:{bg:'#dce8f8',fg:'#1a4a2a',band:'#1a4a2a',bandfg:'#fff',bandtxt:'EVERGREEN STATE',name:'WASHINGTON',tag:''},
+  WV:{bg:'#1a3a8a',fg:'#f5c518',band:'#1a2a6a',bandfg:'#f5c518',bandtxt:'WILD WONDERFUL',name:'WEST VIRGINIA',tag:''},
+  WI:{bg:'#f5f5f0',fg:'#1a3a8a',band:'#1a3a8a',bandfg:'#c8102e',bandtxt:"AMERICA'S DAIRYLAND",name:'WISCONSIN',tag:''},
+  WY:{bg:'#f5f5f0',fg:'#1a3a8a',band:'#1a3a8a',bandfg:'#1a3a8a',bandtxt:'THE EQUALITY STATE',name:'WYOMING',tag:''},
+};
+
+
+
+let db={runs:[]}, currentRun=null, currentSpotter=0, logFilter='all', logSortBy='name';
+let newRunSpotters=[], earnedCache={};
+
+function migrateRun(run){
+  // Migrate old found→sightings model
+  if(run.found&&!run.sightings){
+    run.sightings={};
+    STATES.forEach(s=>{
+      const f=run.found[s.code];
+      run.sightings[s.code]=f&&f.spotted?[{by:f.by??null,at:f.at||new Date().toISOString()}]:[];
+    });
+    delete run.found;
+  }
+  // Ensure sightings exists and has an entry for every state (safety guard)
+  if(!run.sightings)run.sightings={};
+  STATES.forEach(s=>{if(!Array.isArray(run.sightings[s.code]))run.sightings[s.code]=[];});
+  // Ensure other fields
+  if(!run.earnedAchievements)run.earnedAchievements=[];
+  if(!run.sessionSpots)run.sessionSpots=0;
+  if(!run.spotters)run.spotters=[];
+  if(!run.points)run.points=generatePoints(run.homeCode||'WA');
+  return run;
+}
+
+function loadDB(){
+  try{db=JSON.parse(localStorage.getItem('spottedDB')||'{"runs":[]}')}catch(e){db={runs:[]};}
+  // Migrate all runs at load time so home screen helpers never see stale data
+  let dirty=false;
+  db.runs.forEach(r=>{
+    const before=JSON.stringify(r);
+    migrateRun(r);
+    if(JSON.stringify(r)!==before)dirty=true;
+  });
+  if(dirty)saveDB();
+}
+function saveDB(){localStorage.setItem('spottedDB',JSON.stringify(db));}
+
+function createNewRun(name,homeCode,names){
+  const spotters=names.map((n,i)=>({name:n,emoji:EMOJIS[i%EMOJIS.length]}));
+  const points=generatePoints(homeCode);
+  const sightings={};STATES.forEach(s=>{sightings[s.code]=[];});
+  const run={id:Date.now().toString(),name,homeCode,spotters,points,sightings,createdAt:new Date().toISOString(),sessionSpots:0,earnedAchievements:[]};
+  db.runs.unshift(run);saveDB();return run;
+}
+
+// ══ NAVIGATION ══
+function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById('screen-'+id).classList.add('active');}
+function goHome(){showScreen('home');renderHome();}
+function showSettings(){showScreen('settings');renderSettings();}
+function closeSettings(){showScreen('game');}
+
+// ══ HOME ══
+function renderHome(){
+  const list=document.getElementById('runs-list');
+  if(!db.runs.length){list.innerHTML='<p style="color:var(--text-muted);font-size:0.85rem;text-align:center;padding:20px 0;">No Spot Runs yet — start one!</p>';return;}
+  list.innerHTML=db.runs.map(r=>{
+    const u=uniqueSpotted(r),sc=calcScore(r,-1),tot=totalSightings(r);
+    const date=new Date(r.createdAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+    const earn=r.earnedAchievements?r.earnedAchievements.length:0;
+    return `<div class="run-card" onclick="openRun('${r.id}')">
+      <div class="run-card-icon">🚗</div>
+      <div class="run-card-info">
+        <div class="run-card-name">${r.name}</div>
+        <div class="run-card-meta">${date} · ${r.spotters.length} spotter${r.spotters.length!==1?'s':''} · ${u}/51 states · ${tot} sightings${earn?' · 🏅'+earn:''}</div>
+      </div>
+      <div class="run-card-score">${sc}pts</div>
+    </div>`;
+  }).join('');
+}
+
+function openRun(id){
+  currentRun=db.runs.find(r=>r.id===id);
+  // migrateRun already ran at loadDB — just reset session state
+  earnedCache={};
+  currentRun.earnedAchievements.forEach(aid=>earnedCache[aid]=true);
+  currentSpotter=0;
+  showScreen('game');switchTab('grid');renderGame();
+}
+
+// ══ RENDER GAME ══
+function renderGame(){if(!currentRun)return;renderHeader();renderSpotters();renderGrid();renderLog();}
+
+function renderHeader(){
+  document.getElementById('game-title').textContent=currentRun.name;
+  document.getElementById('game-meta').textContent=`${uniqueSpotted(currentRun)}/51 unique · ${totalSightings(currentRun)} sightings · ${calcScore(currentRun,-1)} pts`;
+}
+
+function renderSpotters(){
+  const bar=document.getElementById('spotters-bar');
+  if(!currentRun.spotters.length){bar.style.display='none';return;}
+  bar.style.display='flex';
+  bar.innerHTML=currentRun.spotters.map((p,i)=>`<div class="spotter-chip ${i===currentSpotter?'active':''}" onclick="setCurrentSpotter(${i})">
+    <div class="spotter-chip-name">${p.emoji} ${p.name}</div>
+    <div class="spotter-chip-score">${calcScore(currentRun,i)}</div>
+    <div class="spotter-chip-found">${spotterCount(currentRun,i)} spots</div>
+  </div>`).join('');
+}
+function setCurrentSpotter(i){currentSpotter=i;renderSpotters();}
+
+function renderGrid(){
+  document.getElementById('spot-grid').innerHTML=STATES.map(s=>{
+    const pts=currentRun.points[s.code]||0,sg=getSightings(currentRun,s.code);
+    const isHome=s.code===currentRun.homeCode,isSpot=sg.length>0;
+    const lastBy=isSpot&&sg[sg.length-1].by!==null?currentRun.spotters[sg[sg.length-1].by]:null;
+    const pl=PLATE_STYLES[s.code]||{bg:'#e8e8e0',fg:'#1a1a6e',band:'#1a3a8a',bandfg:'#fff',bandtxt:'',name:s.code,tag:''};
+    const nlen=pl.name.length;
+    const nfz=nlen<=8?18:nlen<=12?15:nlen<=16?12:10;
+    let plateBg,plateBorder,plateOpacity,bandBg,nameColor,tagColor,bandColor,extraBadge='';
+    if(isHome){
+      plateBg='#2a2a3a';plateBorder='rgba(255,255,255,0.15)';plateOpacity=1;
+      bandBg='rgba(255,255,255,0.06)';nameColor='rgba(255,255,255,0.25)';
+      tagColor='rgba(255,255,255,0.15)';bandColor='rgba(255,255,255,0.2)';
+    } else if(isSpot){
+      plateBg=pl.bg;plateBorder=PT_COLORS[pts];plateOpacity=1;
+      bandBg=pl.band;nameColor=pl.fg;tagColor=pl.fg+'bb';bandColor=pl.bandfg;
+      if(sg.length>1) extraBadge='<span style="font-size:0.55em;font-weight:900"> ×'+sg.length+'</span>';
+      else if(lastBy) extraBadge=' <span style="font-size:0.6em">'+lastBy.emoji+'</span>';
+    } else {
+      plateBg=pl.bg;plateBorder='rgba(0,0,0,0.2)';plateOpacity=0.55;
+      bandBg=pl.band;nameColor=pl.fg;tagColor=pl.fg+'99';bandColor=pl.bandfg;
+    }
+    const ptsLabel=isSpot&&!isHome?'<div style="font-size:7px;font-weight:900;color:'+PT_COLORS[pts]+';margin-top:1px">'+pts+'pt'+extraBadge+'</div>':'';
+    const homeLabel=isHome?'<div style="font-size:8px;color:rgba(255,255,255,0.3);margin-top:1px">🏠 home</div>':'';
+    const tagDiv=pl.tag?'<div style="font-size:6px;color:'+tagColor+';letter-spacing:0.3px;margin-top:1px;text-align:center">'+pl.tag+'</div>':'';
+    const boltStyle='position:absolute;top:50%;transform:translateY(-50%);width:5px;height:5px;border-radius:50%;background:'+plateBg+';border:1px solid '+nameColor+';opacity:0.4';
+    const onclick=isHome?'':'tileClick(\''+s.code+'\')';
+    return '<div class="spot-tile'+(isSpot?' spotted':'')+(isHome?' home-turf':'')+'"'
+      +' style="background:'+plateBg+';border:2px solid '+plateBorder+';opacity:'+plateOpacity+';padding:0;overflow:hidden;display:flex;flex-direction:column;border-radius:5px;cursor:'+(isHome?'default':'pointer')+'"'
+      +' onclick="'+onclick+'"'
+      +' title="'+s.name+(isHome?' — Home Turf':' — '+pts+'pt')+(sg.length?' · ×'+sg.length:'')+'">'
+      +'<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2px 6px;position:relative">'
+      +'<div style="position:absolute;inset:2px;border:1px solid '+nameColor+';opacity:0.15;border-radius:2px;pointer-events:none"></div>'
+      +'<div style="'+boltStyle+';left:5px"></div>'
+      +'<div style="'+boltStyle+';right:5px"></div>'
+      +'<div style="font-family:Arial Black,sans-serif;font-size:'+nfz+'px;font-weight:900;color:'+nameColor+';letter-spacing:0.5px;line-height:1;text-align:center">'+pl.name+'</div>'
+      +tagDiv
+      +ptsLabel
+      +homeLabel
+      +'</div>'
+      +'<div style="background:'+bandBg+';padding:2px 4px;text-align:center;line-height:1;min-height:14px">'
+      +'<span style="font-family:Arial Black,sans-serif;font-size:5.5px;font-weight:700;color:'+bandColor+';letter-spacing:0.3px;white-space:nowrap">'+(isHome?'HOME TURF':pl.bandtxt)+'</span>'
+      +'</div>'
+      +'</div>';
+  }).join('');
+}
+
+function renderLog(){
+  let states=[...STATES];
+  if(logFilter==='spotted')   states=states.filter(s=>stateSpotted(currentRun,s.code));
+  if(logFilter==='unspotted') states=states.filter(s=>!stateSpotted(currentRun,s.code));
+  if(logFilter==='hot')       states=states.filter(s=>(currentRun.points[s.code]||0)>=8);
+  if(logSortBy==='points')    states.sort((a,b)=>(currentRun.points[b.code]||0)-(currentRun.points[a.code]||0));
+  else if(logSortBy==='count')states.sort((a,b)=>getSightings(currentRun,b.code).length-getSightings(currentRun,a.code).length);
+  else                        states.sort((a,b)=>a.name.localeCompare(b.name));
+  document.getElementById('log-body').innerHTML=states.map(s=>{
+    const pts=currentRun.points[s.code]||0,sg=getSightings(currentRun,s.code);
+    const isHome=s.code===currentRun.homeCode,isSpot=sg.length>0;
+    const spCounts={};sg.forEach(x=>{const k=x.by!==null&&currentRun.spotters[x.by]?x.by:'?';spCounts[k]=(spCounts[k]||0)+1;});
+    const pills=Object.entries(spCounts).map(([k,n])=>{const p=k==='?'?null:currentRun.spotters[parseInt(k)];return `<span class="sighting-pill">${p?p.emoji+' '+p.name:'👤'}${n>1?' ×'+n:''}</span>`;}).join('');
+    return `<tr>
+      <td style="font-weight:700">${s.name}${isHome?' 🏠':''}</td>
+      <td><span class="pt-badge" style="background:${PT_COLORS[pts]};color:${PT_TEXT[pts]}">${isHome?'—':pts}</span></td>
+      <td style="font-weight:800;color:${isSpot?'var(--accent2)':'var(--text-muted)'};text-align:center">${sg.length||'—'}</td>
+      <td><div class="sighting-pills">${pills}</div></td>
+      <td style="white-space:nowrap">
+        ${isHome?'':  `<button class="spot-btn ${isSpot?'has-spots':''}" onclick="tileClick('${s.code}')" title="Log sighting">+</button>`}
+        ${sg.length>0?`<button class="spot-btn" style="margin-left:4px;font-size:0.7rem" onclick="openSightings('${s.code}')">👁</button>`:''}
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// ══ MAP ══
+const FIPS={'01':'AL','02':'AK','04':'AZ','05':'AR','06':'CA','08':'CO','09':'CT','10':'DE','11':'DC','12':'FL','13':'GA','15':'HI','16':'ID','17':'IL','18':'IN','19':'IA','20':'KS','21':'KY','22':'LA','23':'ME','24':'MD','25':'MA','26':'MI','27':'MN','28':'MS','29':'MO','30':'MT','31':'NE','32':'NV','33':'NH','34':'NJ','35':'NM','36':'NY','37':'NC','38':'ND','39':'OH','40':'OK','41':'OR','42':'PA','44':'RI','45':'SC','46':'SD','47':'TN','48':'TX','49':'UT','50':'VT','51':'VA','53':'WA','54':'WV','55':'WI','56':'WY'};
+const SMALL=new Set(['CT','DE','DC','HI','MA','MD','NH','NJ','RI','VT']);
+const CNUDGE={FL:[12,0],LA:[4,0]};
+// Absolute box-centre positions in 660×512 SVG reference space.
+// VT+NH: above their states in blank upper-right space.
+// col-A (bx≈645): ME, RI, NJ, MD  col-B (bx≈608): MA, CT, DE, DC — staggered.
+// HI: below its inset box.
+// Pill centres in 660x512 reference space. PW=32 PH=23.
+// Each pill anchored to its own state's right bbox edge.
+// VT+NH in blank zone north of NY. HI just above its island. No overlaps.
+const CALLOUTS={
+  VT:{bx:448,by:100}, NH:{bx:490,by:82},
+  ME:{bx:641,by:132},
+  MA:{bx:641,by:173}, RI:{bx:641,by:199},
+  CT:{bx:641,by:225}, NJ:{bx:641,by:251},
+  DE:{bx:641,by:277}, MD:{bx:641,by:303},
+  DC:{bx:641,by:329},
+  HI:{bx:178,by:405},
+};
+let usTopoData=null;
+
+async function renderMap(){
+  const container=document.getElementById('map-container');
+  container.innerHTML='';
+  if(!usTopoData){
+    try{usTopoData=await d3.json('https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json');}
+    catch(e){container.innerHTML='<p style="color:var(--text-muted);font-size:0.8rem;padding:20px;text-align:center;">Map unavailable offline</p>';return;}
+  }
+  const pts=currentRun.points;
+  const W=Math.max(container.getBoundingClientRect().width,300);
+  // Extra vertical space: 20px top for VT/NH boxes above map edge, 30px bottom for HI below inset
+  const MAPTOP=20, MAPBOT=30;
+  const mapH=Math.round(W*0.70);
+  const H=mapH+MAPTOP+MAPBOT;
+  const sc=W/660,mapW=W*0.83;
+  // Shift projection down by MAPTOP so map body sits in the middle zone
+  const proj=d3.geoAlbersUsa().scale(mapW*1.28).translate([mapW/2,MAPTOP+mapH*0.48]);
+  const pg=d3.geoPath().projection(proj);
+  const svg=d3.create('svg').attr('viewBox',`0 0 ${W} ${H}`).attr('width','100%').style('display','block');
+  const states=topojson.feature(usTopoData,usTopoData.objects.states);
+  const mesh=topojson.mesh(usTopoData,usTopoData.objects.states,(a,b)=>a!==b);
+
+  const centroids={};
+  states.features.forEach(d=>{
+    const code=FIPS[d.id.toString().padStart(2,'0')];if(!code)return;
+    const c=pg.centroid(d);if(c&&!isNaN(c[0])){const n=CNUDGE[code]||[0,0];centroids[code]=[c[0]+n[0],c[1]+n[1]];}
+  });
+
+  svg.selectAll('.state').data(states.features).join('path').attr('class','state').attr('d',pg)
+    .attr('data-code',d=>FIPS[d.id.toString().padStart(2,'0')]||'')
+    .attr('fill',d=>{
+      const code=FIPS[d.id.toString().padStart(2,'0')];if(!code)return'#1e1e2e';
+      const p=pts[code]??5,isHome=code===currentRun.homeCode;
+      if(isHome)return'#3a3a4a';
+      return stateSpotted(currentRun,code)?PT_COLORS[p]:'#1e1e2e';
+    }).attr('stroke','none');
+
+  svg.append('path').datum(mesh).attr('d',pg).attr('fill','none').attr('stroke','rgba(255,255,255,0.22)').attr('stroke-width',Math.max(0.4,sc*0.75));
+
+  const as=Math.max(7,Math.round(9.5*sc)),ps=Math.max(6,Math.round(8*sc)),pW=as*3.0,pH=as*2.6;
+  const tip=document.getElementById('map-tooltip');
+
+  states.features.forEach(d=>{
+    const code=FIPS[d.id.toString().padStart(2,'0')];if(!code||SMALL.has(code))return;
+    const p=pts[code]??5,c=centroids[code];if(!c||pg.area(d)<W*H*0.0025)return;
+    const isHome=code===currentRun.homeCode,isSpt=stateSpotted(currentRun,code);
+    const cnt=getSightings(currentRun,code).length;
+    const tc=isSpt?PT_TEXT[p]:'rgba(255,255,255,0.38)';
+    svg.append('text').attr('x',c[0]).attr('y',c[1]-ps*0.6).attr('text-anchor','middle').attr('dominant-baseline','central').attr('font-family','Nunito, Arial Black, sans-serif').attr('font-size',as).attr('font-weight','900').attr('fill',tc).attr('pointer-events','none').text(code);
+    svg.append('text').attr('x',c[0]).attr('y',c[1]+ps*1.0).attr('text-anchor','middle').attr('dominant-baseline','central').attr('font-family','Nunito, Arial, sans-serif').attr('font-size',ps).attr('font-weight','700').attr('fill',tc).attr('opacity',0.9).attr('pointer-events','none').text(isHome?'🏠':isSpt?`×${cnt}`:p+'pt');
+  });
+
+  SMALL.forEach(code=>{
+    const box=CALLOUTS[code],c=centroids[code];if(!c||!box)return;
+    const p=pts[code]??5,isHome=code===currentRun.homeCode,isSpt=stateSpotted(currentRun,code);
+    const cnt=getSightings(currentRun,code).length;
+    const fill=isSpt?PT_COLORS[p]:'#2a2a3e',tc=isSpt?PT_TEXT[p]:'rgba(255,255,255,0.5)';
+    const PW=32*(W/660),PH=23*(H/512);
+    const bx=box.bx*(W/660),by=box.by*(H/512);
+    const dx=bx-c[0],dy=by-c[1],dist=Math.sqrt(dx*dx+dy*dy)||1;
+    const dotR=Math.max(2,sc*2.5),boxGap=3;
+    // Dot
+    svg.append('circle').attr('cx',c[0]).attr('cy',c[1]).attr('r',dotR)
+      .attr('fill','rgba(255,255,255,0.75)').attr('pointer-events','none');
+    // Direct diagonal dashed line
+    svg.append('line')
+      .attr('x1',c[0]+dx/dist*(dotR+1)).attr('y1',c[1]+dy/dist*(dotR+1))
+      .attr('x2',bx-dx/dist*boxGap).attr('y2',by-dy/dist*boxGap)
+      .attr('stroke','rgba(255,255,255,0.45)').attr('stroke-width',Math.max(0.5,sc*0.65))
+      .attr('stroke-dasharray','2 2').attr('pointer-events','none');
+    // Clickable pill
+    const grp=svg.append('g').attr('cursor',isHome?'default':'pointer')
+      .on('click',()=>{if(!isHome)tileClick(code);})
+      .on('mousemove',(event)=>{
+        const name=STATES.find(s=>s.code===code)?.name||code;
+        tip.textContent=isHome?`${name} — Home Turf 🏠`:`${name} — ${p}pt${cnt?' · ×'+cnt+' sighted':''}`;
+        tip.style.opacity='1';tip.style.left=(event.clientX+14)+'px';tip.style.top=(event.clientY-10)+'px';
+      })
+      .on('mouseleave',()=>{tip.style.opacity='0';});
+    grp.append('rect').attr('x',bx-PW/2).attr('y',by-PH/2).attr('width',PW).attr('height',PH).attr('rx',3)
+      .attr('fill',fill).attr('stroke',isSpt?'rgba(255,255,255,0.45)':'rgba(255,255,255,0.2)')
+      .attr('stroke-width',Math.max(0.5,sc*0.6));
+    grp.append('text').attr('x',bx).attr('y',by-PH*0.18)
+      .attr('text-anchor','middle').attr('dominant-baseline','central')
+      .attr('font-family','Nunito, Arial Black, sans-serif').attr('font-size',Math.max(6,as-2))
+      .attr('font-weight','900').attr('fill',tc).attr('pointer-events','none').text(code);
+    grp.append('text').attr('x',bx).attr('y',by+PH*0.3)
+      .attr('text-anchor','middle').attr('dominant-baseline','central')
+      .attr('font-family','Nunito, Arial, sans-serif').attr('font-size',Math.max(5,ps-1))
+      .attr('font-weight','700').attr('fill',tc).attr('opacity',0.9).attr('pointer-events','none')
+      .text(isHome?'🏠':isSpt?`×${cnt}`:p+'pt');
+  });
+
+  // Helper: compute the correct resting fill for a state path
+  function stateFill(code){
+    const p=pts[code]??5,isHome=code===currentRun.homeCode;
+    if(isHome) return '#3a3a4a';
+    return stateSpotted(currentRun,code)?PT_COLORS[p]:'#1e1e2e';
+  }
+
+  svg.selectAll('.state')
+    .on('click',function(_,d){
+      const code=FIPS[d.id.toString().padStart(2,'0')];
+      if(!code||code===currentRun.homeCode) return;
+      tileClick(code);
+      // doSpot() handles the map fill update directly via data-code lookup
+    })
+    .on('mouseenter',function(_,d){
+      const code=FIPS[d.id.toString().padStart(2,'0')];if(!code)return;
+      const p=pts[code]??5,isHome=code===currentRun.homeCode;
+      if(!isHome){
+        d3.select(this).attr('fill',PT_COLORS[p]).attr('opacity',0.8);
+      }
+    })
+    .on('mousemove',function(event,d){
+      const code=FIPS[d.id.toString().padStart(2,'0')];if(!code)return;
+      const p=pts[code]??5,cnt=getSightings(currentRun,code).length,isHome=code===currentRun.homeCode;
+      const name=STATES.find(s=>s.code===code)?.name||code;
+      tip.textContent=isHome?`${name} — Home Turf 🏠`:`${name} — ${p}pt${cnt?' · ×'+cnt+' sighted':''}`;
+      tip.style.opacity='1';tip.style.left=(event.clientX+14)+'px';tip.style.top=(event.clientY-10)+'px';
+    })
+    .on('mouseleave',function(_,d){
+      tip.style.opacity='0';
+      const code=FIPS[d.id.toString().padStart(2,'0')];if(!code)return;
+      // Restore to correct resting fill (spotted or unspotted)
+      d3.select(this).attr('fill',stateFill(code)).attr('opacity',1);
+    });
+
+  container.appendChild(svg.node());
+  document.getElementById('map-legend').innerHTML=
+    `<div class="legend-item"><div class="legend-dot" style="background:#3a3a4a;border:1px solid #555"></div>Home</div>`+
+    `<div class="legend-item"><div class="legend-dot" style="background:#1e1e2e;border:1px solid #333"></div>Unspotted</div>`+
+    [1,2,3,4,5,6,7,8,9,10].map(p=>`<div class="legend-item"><div class="legend-dot" style="background:${PT_COLORS[p]}"></div>${p}pt</div>`).join('')+
+    `<div style="font-size:11px;color:var(--text-muted);margin-left:4px">← close &nbsp; far →</div>`;
+}
+
+// ══ HQ ══
+function renderHQ(){
+  const run=currentRun,u=uniqueSpotted(run),tot=totalSightings(run),sc=calcScore(run,-1);
+  const max=STATES.reduce((a,s)=>a+(s.code!==run.homeCode?(run.points[s.code]||0):0),0);
+  document.getElementById('hq-grid').innerHTML=`
+    <div class="hq-card"><div class="hq-card-val">${u}</div><div class="hq-card-label">Unique States</div></div>
+    <div class="hq-card"><div class="hq-card-val">${tot}</div><div class="hq-card-label">Total Sightings</div></div>
+    <div class="hq-card"><div class="hq-card-val">${sc}</div><div class="hq-card-label">Spot Score</div></div>
+    <div class="hq-card"><div class="hq-card-val">${max>0?Math.round(sc/max*100):0}%</div><div class="hq-card-label">Score %</div></div>`;
+  document.getElementById('progress-text').textContent=`${u}/51`;
+  document.getElementById('progress-fill').style.width=`${u/51*100}%`;
+  const lbWrap=document.getElementById('leaderboard-wrap');
+  if(run.spotters.length>1){
+    const ranked=run.spotters.map((p,i)=>({...p,score:calcScore(run,i),spots:spotterCount(run,i)})).sort((a,b)=>b.score-a.score);
+    const medals=['🥇','🥈','🥉'];
+    lbWrap.innerHTML=`<div class="achieve-section-title">🏆 Spotter Leaderboard</div><div class="leaderboard">`+
+      ranked.map((p,i)=>`<div class="lb-row"><div class="lb-rank">${medals[i]||i+1}</div><div><div class="lb-name">${p.emoji} ${p.name}</div><div class="lb-found">${p.spots} sightings</div></div><div class="lb-score">${p.score}pts</div></div>`).join('')+'</div>';
+  } else {lbWrap.innerHTML='';}
+  const earned=ACHIEVEMENTS.filter(a=>a.check(run));
+  document.getElementById('achieve-count').textContent=`${earned.length}/${ACHIEVEMENTS.length}`;
+  document.getElementById('badge-grid').innerHTML=[...earned,...ACHIEVEMENTS.filter(a=>!a.check(run))].map(a=>{
+    const e=a.check(run);
+    return `<div class="badge-card ${e?'earned':''}"><span class="badge-icon">${a.icon}</span><div class="badge-name">${a.name}</div><div class="badge-desc">${a.desc}</div></div>`;
+  }).join('');
+}
+
+// ══ TILE CLICK / SIGHTING FLOW ══
+function tileClick(code){
+  if(!currentRun)return;
+  if(currentRun.spotters.length<=1){doSpot(code,currentRun.spotters.length===1?0:null);}
+  else{openWhoSpotted(code);}
+}
+
+function openWhoSpotted(code){
+  const state=STATES.find(s=>s.code===code),cnt=getSightings(currentRun,code).length;
+  document.getElementById('who-spotted-title').textContent=`🔦 Who spotted ${state.name}?${cnt>0?' (×'+(cnt+1)+')':''}`;
+  document.getElementById('who-spotted-spotters').innerHTML=
+    currentRun.spotters.map((p,i)=>`<button class="spotter-select-btn" onclick="doSpot('${code}',${i});closeModal('modal-who-spotted')"><span class="spotter-emoji">${p.emoji}</span>${p.name}</button>`).join('')+
+    `<button class="spotter-select-btn" style="opacity:0.55;grid-column:1/-1" onclick="doSpot('${code}',null);closeModal('modal-who-spotted')">👤 No specific spotter</button>`;
+  openModal('modal-who-spotted');
+}
+
+function doSpot(code,byIdx){
+  const state=STATES.find(s=>s.code===code),pts=currentRun.points[code]||0;
+  if(!currentRun.sightings[code])currentRun.sightings[code]=[];
+  currentRun.sightings[code].push({by:byIdx,at:new Date().toISOString()});
+  currentRun.sessionSpots=(currentRun.sessionSpots||0)+1;
+  saveDB();renderGame();
+  // Update map fill in-place immediately — no full re-render needed
+  // Find the path whose data-code matches and update its fill directly
+  const mapSvg=document.querySelector('#map-container svg');
+  if(mapSvg){
+    mapSvg.querySelectorAll('path.state').forEach(path=>{
+      if(path.dataset.code===code){
+        path.setAttribute('fill',PT_COLORS[pts]);
+        path.setAttribute('opacity','1');
+      }
+    });
+  }
+  const cnt=currentRun.sightings[code].length;
+  showToast(`${state.name} Spotted!${cnt>1?' (×'+cnt+')':''} +${pts}pts 🎯`);
+  if(pts>=8||uniqueSpotted(currentRun)%10===0)spawnConfetti();
+  checkAchievements();
+}
+
+function openSightings(code){
+  const state=STATES.find(s=>s.code===code),sg=getSightings(currentRun,code);
+  document.getElementById('sightings-title').textContent=`${state.name} — ${sg.length} sighting${sg.length!==1?'s':''}`;
+  document.getElementById('sightings-list').innerHTML=sg.map((s,i)=>{
+    const sp=s.by!==null&&currentRun.spotters[s.by]?currentRun.spotters[s.by]:null;
+    const t=new Date(s.at).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
+    return `<div class="sighting-row"><div style="font-weight:800">#${i+1}</div><div style="flex:1">${sp?sp.emoji+' '+sp.name:'👤 Unassigned'}</div><div class="sighting-time">${t}</div><button onclick="removeSighting('${code}',${i})" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:0.8rem;padding:4px">✕</button></div>`;
+  }).join('');
+  openModal('modal-sightings');
+}
+
+function removeSighting(code,idx){
+  currentRun.sightings[code].splice(idx,1);saveDB();renderGame();
+  if(getSightings(currentRun,code).length===0)closeModal('modal-sightings');
+  else openSightings(code);
+}
+
+// ══ ACHIEVEMENTS ══
+let achieveQueue=[],achieveShowing=false;
+function checkAchievements(){
+  if(!currentRun.earnedAchievements)currentRun.earnedAchievements=[];
+  ACHIEVEMENTS.forEach(a=>{if(!earnedCache[a.id]&&a.check(currentRun)){earnedCache[a.id]=true;currentRun.earnedAchievements.push(a.id);achieveQueue.push(a);}});
+  saveDB();if(!achieveShowing)drainQueue();
+}
+function drainQueue(){
+  if(!achieveQueue.length){achieveShowing=false;return;}
+  achieveShowing=true;const a=achieveQueue.shift();
+  document.getElementById('achieve-popup-icon').textContent=a.icon;
+  document.getElementById('achieve-popup-name').textContent=a.name;
+  document.getElementById('achieve-popup-desc').textContent=a.desc;
+  document.getElementById('achieve-popup').classList.add('show');
+  spawnConfetti();
+  setTimeout(()=>{document.getElementById('achieve-popup').classList.remove('show');setTimeout(drainQueue,400);},3000);
+}
+
+// ══ TABS ══
+const TABS=['grid','log','map','hq'];
+function switchTab(tab){
+  TABS.forEach(t=>{document.getElementById('tab-content-'+t).classList.toggle('active',t===tab);document.getElementById('tab-'+t).classList.toggle('active',t===tab);document.getElementById('nav-'+t).classList.toggle('active',t===tab);});
+  if(tab==='map')renderMap();if(tab==='hq')renderHQ();
+}
+function setFilter(f,el){logFilter=f;document.querySelectorAll('.filter-chip').forEach(c=>c.classList.remove('active'));el.classList.add('active');renderLog();}
+function setSortBy(s){logSortBy=s;renderLog();}
+
+// ══ SETTINGS ══
+function renderSettings(){
+  if(!currentRun)return;
+  document.getElementById('setting-run-name').value=currentRun.name;
+  document.getElementById('setting-home-state').innerHTML=STATES.map(s=>`<option value="${s.code}" ${s.code===currentRun.homeCode?'selected':''}>${s.name}</option>`).join('');
+  document.getElementById('settings-spotters-list').innerHTML=currentRun.spotters.map((p,i)=>`<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"><span style="font-size:1.2rem">${p.emoji}</span><span style="flex:1;font-weight:700">${p.name}</span><button class="btn btn-ghost btn-sm" onclick="removeSpotter(${i})">✕</button></div>`).join('');
+  document.getElementById('points-editor').innerHTML=
+    '<tr><th style="text-align:left;padding:4px 0;font-size:0.68rem;color:var(--text-muted)">State</th><th>Pts</th><th style="width:30px"></th></tr>'+
+    STATES.map(s=>{const ih=s.code===currentRun.homeCode,p=currentRun.points[s.code]||0;return `<tr><td>${s.name}${ih?' 🏠':''}</td><td><input type="range" class="points-range" min="0" max="10" value="${p}" ${ih?'disabled':''} oninput="updatePoint('${s.code}',this.value);this.closest('tr').querySelector('.points-val').textContent=this.value"></td><td><span class="points-val">${ih?'—':p}</span></td></tr>`;}).join('');
+}
+function updatePoint(code,val){if(!currentRun)return;currentRun.points[code]=parseInt(val);saveDB();}
+function onHomeTurfChange(){
+  const code=document.getElementById('setting-home-state').value;if(!currentRun)return;
+  currentRun.homeCode=code;currentRun.points=generatePoints(code);saveDB();renderSettings();
+  showToast(`Home Turf → ${STATES.find(s=>s.code===code).name}`);
+}
+function saveRunSettings(){currentRun.name=document.getElementById('setting-run-name').value||currentRun.name;saveDB();closeSettings();renderGame();showToast('Settings saved!');}
+function addSpotter(){const input=document.getElementById('new-spotter-name'),name=input.value.trim();if(!name)return;currentRun.spotters.push({name,emoji:EMOJIS[currentRun.spotters.length%EMOJIS.length]});saveDB();input.value='';renderSettings();renderSpotters();}
+function removeSpotter(i){
+  if(currentRun.spotters.length<=1){showToast('Need at least 1 spotter');return;}
+  currentRun.spotters.splice(i,1);
+  STATES.forEach(s=>currentRun.sightings[s.code].forEach(sg=>{if(sg.by===i)sg.by=null;else if(sg.by>i)sg.by--;}));
+  saveDB();renderSettings();renderSpotters();
+}
+function resetRun(){
+  if(!confirm('Reset all sightings? This cannot be undone.'))return;
+  STATES.forEach(s=>{currentRun.sightings[s.code]=[];});
+  currentRun.sessionSpots=0;currentRun.earnedAchievements=[];earnedCache={};
+  saveDB();closeSettings();renderGame();showToast('Spot Run reset!');
+}
+function deleteRun(){
+  if(!confirm('Delete this Spot Run? This cannot be undone.'))return;
+  db.runs=db.runs.filter(r=>r.id!==currentRun.id);saveDB();currentRun=null;goHome();showToast('Spot Run deleted');
+}
+
+// ══ NEW RUN ══
+function openNewRunModal(){
+  newRunSpotters=[];document.getElementById('new-run-name').value='';document.getElementById('new-spotter-input').value='';
+  document.getElementById('new-run-home').innerHTML=STATES.map(s=>`<option value="${s.code}" ${s.code==='WA'?'selected':''}>${s.name}</option>`).join('');
+  renderNewRunSpotters();openModal('modal-new-run');
+}
+function addNewRunSpotter(){const input=document.getElementById('new-spotter-input'),name=input.value.trim();if(!name)return;newRunSpotters.push(name);input.value='';renderNewRunSpotters();}
+function renderNewRunSpotters(){document.getElementById('new-run-spotters').innerHTML=newRunSpotters.map((n,i)=>`<div style="background:var(--surface2);border-radius:8px;padding:5px 10px;display:flex;align-items:center;gap:6px;font-size:0.85rem;font-weight:700;">${EMOJIS[i%EMOJIS.length]} ${n}<button onclick="newRunSpotters.splice(${i},1);renderNewRunSpotters();" style="background:none;border:none;color:var(--text-muted);cursor:pointer;">✕</button></div>`).join('');}
+function createRun(){
+  const name=document.getElementById('new-run-name').value.trim()||'Spot Run';
+  const home=document.getElementById('new-run-home').value;
+  const spotters=newRunSpotters.length>0?newRunSpotters:['Spotter 1'];
+  closeModal('modal-new-run');openRun(createNewRun(name,home,spotters).id);
+}
+
+// ══ MODALS / TOAST / CONFETTI ══
+function openModal(id){document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+let toastTimer;
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),2200);}
+function spawnConfetti(){const colors=['#e94560','#f5a623','#4ecdc4','#8b52c1','#52c152','#d45a8a','#fff'];for(let i=0;i<28;i++){const el=document.createElement('div');el.className='confetti-piece';el.style.cssText=`left:${Math.random()*100}vw;top:0;background:${colors[Math.floor(Math.random()*colors.length)]};animation-delay:${Math.random()*0.5}s;animation-duration:${0.9+Math.random()*0.8}s;border-radius:${Math.random()>0.5?'50%':'2px'};`;document.body.appendChild(el);setTimeout(()=>el.remove(),1600);}}
+function openAbout(){openModal('modal-how-to-play');}
+
+// ══ INIT ══
+loadDB();renderHome();
+
+// Register service worker for PWA offline support
+// Only runs on actual deployments — skipped in sandboxed/preview environments
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    // Skip SW registration if running inside an iframe (Claude preview, etc.)
+    if(window.self !== window.top) return;
+    // Skip if not served over HTTPS or localhost
+    const proto = location.protocol;
+    if(proto !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') return;
+    navigator.serviceWorker.register('./sw.js')
+      .then(reg => console.log('Spotted! SW registered:', reg.scope))
+      .catch(() => {}); // Silently ignore — app works fine without SW
+  });
+}
+</script>
+</body>
+</html>
